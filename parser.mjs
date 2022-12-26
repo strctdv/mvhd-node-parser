@@ -1,3 +1,6 @@
+//Very simple MP4 'mvhd' atom parser.
+//Quick and dirty, no error handling, no validation, no tests, no documentation, no nothing, but is's free and open source. ;)
+
 import fs from "fs";
 
 const params = process.argv.slice(2);
@@ -22,6 +25,10 @@ const readToBuff = (offset) => {
 }
 
 const mvhdHeader = Buffer.from("mvhd");
+
+//Depends on the file steamable or not, the 'mvhd' atom can be at the begining or at the end of the file.
+//We read 16kb from the begining of the file and if the 'mvhd' atom is not found, we read 16kb from the end of the file.
+//We hope that the 'mvhd' atom will be found in one of the 16kb chunks. ;)
 
 readToBuff(0); //from the begining of the file
 let mvhdIndex = buff.indexOf(mvhdHeader);
@@ -52,14 +59,14 @@ start += 4;
 const version = buff.readUInt8(start);
 start += 1;
 
-const flags = `${buff.subarray(start, start + 3)}`;
+const flags = buff.subarray(start, start + 3);
 start += 3;
 
-//XXX: in seconds since beginning 1904 to 2040, 66 years difference to 1970 (unix epoch)
+//in seconds beginning 1904 to 2040, 66 years difference to 1970 (unix epoch)
 const creationTime = buff.readUInt32BE(start);
 start += 4;
 
-//XXX: in seconds since beginning 1904 to 2040, 66 years difference to 1970 (unix epoch)
+//in seconds beginning 1904 to 2040, 66 years difference to 1970 (unix epoch)
 const modificationTime = buff.readUInt32BE(start);
 start += 4;
 
@@ -105,15 +112,15 @@ const durationInSeconds = parseFloat(duration / timeScale).toFixed(2);
 
 //The stored time is in seconds since midnight, January 1, 1904
 //There is no time zone information stored in the atom, so use UTC!
-const secondBetween1904And1970 = 2_082_844_800;
-const creationDate = new Date((creationTime - secondBetween1904And1970) * 1000);
-const modificationDate = new Date((modificationTime - secondBetween1904And1970) * 1000);
+const secondsBetween1904And1970 = 2_082_844_800;
+const creationDate = new Date((creationTime - secondsBetween1904And1970) * 1000);
+const modificationDate = new Date((modificationTime - secondsBetween1904And1970) * 1000);
 
 console.debug(
   '\n',
   `MP4 file has successfully been parsed! \n`,
   '\n',
-  `⏱    video duration in seconds: ${durationInSeconds}\n`,
+  `⏱   video duration in seconds: ${durationInSeconds}\n`,
   `📅   creation time UTC: ${creationDate.toUTCString()}\n`,
   `📅   modification time UTC: ${modificationDate.toUTCString()}\n`,
   '\n',
